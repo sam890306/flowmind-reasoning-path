@@ -59,7 +59,7 @@ export default function App() {
   }, []);
 
   return (
-    <Box sx={{minHeight: "100vh", py: 8, px: 4 }}>
+    <Box sx={{background: "transparent", minHeight: "100vh", py: 8, px: 4 }}>
       <Typography
         variant="h4"
         color="white"
