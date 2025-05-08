@@ -114,7 +114,7 @@ export default function App() {
                   left: "100%",
                   width: 30,
                   height: 2,
-                  background: "#00eaff",
+                  background: "#9b80ea",
                   opacity: 0.4,
                   zIndex: 1,
                   transform: "translateY(-50%)",
