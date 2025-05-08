@@ -105,31 +105,35 @@ export default function FlowMindWizStylePath() {
       ))}
 
       {/* SVG paths (simulating connection lines) */}
+
       <svg
         width="100%"
         height="600"
         style={{ position: "absolute", top: 0, left: 0, zIndex: 0 }}
       >
+        {/* Step 0 ➜ Step 2 */}
         <motion.path
-          d="M190,80 Q320,120 190,180"
+          d="M360,60 Q380,80 400,100"
           stroke="#00eaff"
           strokeWidth="2"
           fill="none"
           initial={{ pathLength: 0 }}
-          animate={{ pathLength: visibleSteps > 1 ? 1 : 0 }}
+          animate={{ pathLength: visibleSteps > 2 ? 1 : 0 }}
           transition={{ duration: 1 }}
         />
+        {/* Step 1 ➜ Step 2 */}
         <motion.path
-          d="M190,180 Q320,260 190,340"
+          d="M340,180 Q370,140 400,120"
           stroke="#00eaff"
           strokeWidth="2"
           fill="none"
           initial={{ pathLength: 0 }}
-          animate={{ pathLength: visibleSteps > 4 ? 1 : 0 }}
+          animate={{ pathLength: visibleSteps > 2 ? 1 : 0 }}
           transition={{ duration: 1 }}
         />
+        {/* Step 2 ➜ Step 3 */}
         <motion.path
-          d="M340,120 Q420,160 340,220"
+          d="M700,120 Q720,170 700,220"
           stroke="#00eaff"
           strokeWidth="2"
           fill="none"
@@ -137,8 +141,19 @@ export default function FlowMindWizStylePath() {
           animate={{ pathLength: visibleSteps > 3 ? 1 : 0 }}
           transition={{ duration: 1 }}
         />
+        {/* Step 1 ➜ Step 4 */}
         <motion.path
-          d="M340,340 Q420,360 340,420"
+          d="M340,180 Q360,250 60,340"
+          stroke="#00eaff"
+          strokeWidth="2"
+          fill="none"
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: visibleSteps > 4 ? 1 : 0 }}
+          transition={{ duration: 1 }}
+        />
+        {/* Step 4 ➜ Step 5 */}
+        <motion.path
+          d="M340,340 Q380,400 400,420"
           stroke="#00eaff"
           strokeWidth="2"
           fill="none"
