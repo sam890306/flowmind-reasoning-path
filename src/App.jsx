@@ -59,7 +59,7 @@ export default function App() {
   }, []);
 
   return (
-    <Box sx={{ minHeight: "100vh", py: 8, px: 4 }}>
+    <Box sx={{minHeight: "100vh", py: 8, px: 4 }}>
       <Typography
         variant="h4"
         color="white"
@@ -69,19 +69,18 @@ export default function App() {
       >
         FlowMind AI Inference Path
       </Typography>
-
-      {/* Top horizontal flow (first 4 steps) */}
       <Box
         display="flex"
+        flexDirection="row"
         justifyContent="center"
         alignItems="center"
         gap={3}
         flexWrap="nowrap"
+        position="relative"
+        overflow="auto"
         px={4}
-        overflowX="auto"
-        mb={8}
       >
-        {steps.slice(0, 4).map((step, idx) => (
+        {steps.slice(0, visibleSteps).map((step, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 20 }}
@@ -107,7 +106,7 @@ export default function App() {
                 {step.description}
               </Typography>
             </Box>
-            {idx < 3 && (
+            {idx < visibleSteps - 1 && (
               <Box
                 sx={{
                   position: "absolute",
@@ -115,61 +114,7 @@ export default function App() {
                   left: "100%",
                   width: 30,
                   height: 2,
-                  background: "#9b80ea",
-                  opacity: 0.4,
-                  zIndex: 1,
-                  transform: "translateY(-50%)",
-                }}
-              />
-            )}
-          </motion.div>
-        ))}
-      </Box>
-
-      {/* Bottom horizontal flow (last 2 steps) */}
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        gap={5}
-        flexWrap="nowrap"
-        px={4}
-      >
-        {steps.slice(4, visibleSteps).map((step, idx) => (
-          <motion.div
-            key={4 + idx}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            style={{ position: "relative", zIndex: 2 }}
-          >
-            <Box
-              sx={{
-                background: "rgba(255,255,255,0.05)",
-                borderRadius: 3,
-                p: 3,
-                width: 240,
-                textAlign: "center",
-                boxShadow: "0 0 10px rgba(0,255,255,0.25)",
-              }}
-            >
-              <FontAwesomeIcon icon={step.icon} color="#00eaff" size="lg" />
-              <Typography variant="subtitle2" color="white" fontWeight={600} mt={1}>
-                {step.title}
-              </Typography>
-              <Typography variant="caption" color="#ccc">
-                {step.description}
-              </Typography>
-            </Box>
-            {idx === 0 && visibleSteps > 5 && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "100%",
-                  width: 30,
-                  height: 2,
-                  background: "#9b80ea",
+                  background: "#00eaff",
                   opacity: 0.4,
                   zIndex: 1,
                   transform: "translateY(-50%)",
