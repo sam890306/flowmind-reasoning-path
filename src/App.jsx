@@ -67,7 +67,7 @@ export default function App() {
         textAlign="center"
         mb={6}
       >
-        FlowMind AI Inference Path
+        A Reasoning Chain in Action
       </Typography>
       <Box
         display="flex"
