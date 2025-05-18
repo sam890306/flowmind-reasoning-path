@@ -24,12 +24,12 @@ const steps = [
   },
   {
     icon: faMicrochip,
-    title: "AI Reasoning",
+    title: "Checked logs",
     description: "Checked logs, traces, metrics.",
   },
   {
     icon: faSearch,
-    title: "Matched Ticket #230678",
+    title: "Found fix",
     description: "Found prior incident and fix.",
   },
   {
@@ -39,7 +39,7 @@ const steps = [
   },
   {
     icon: faCheckCircle,
-    title: "MR Generated + Executed",
+    title: "Generated MR",
     description: "MTTR: Hours → Seconds.",
   },
 ];
