@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { useSim, can, whyNot, spentOf, fmtVal, fmtDelta, tPlus, userOf } from './engine'
+import { useSim, act, can, whyNot, spentOf, fmtVal, fmtDelta, tPlus, userOf, watchCampaign } from './store'
 import { REASONS } from './data'
 import { Icon, Pill, Num, Bar, Btn, Level, Copy, Avatar } from './ui'
 
@@ -32,6 +32,7 @@ function report(c) {
 function Detail({ c, go }) {
   const m = c.metric
   const [tab, setTab] = useState('patch')
+  useEffect(() => { watchCampaign(c.id) }, [c.id])
   const kept = c.hyps.filter((h) => h.stage === 'kept'), dead = c.hyps.filter((h) => h.stage === 'discarded')
   const top = Math.max(c.screenTotal, c.best, c.verified, 0.01)
   const files = {}
@@ -106,15 +107,17 @@ function Detail({ c, go }) {
           <>
             <ul className="files">{Object.entries(files).map(([f, [a, d]]) => <li key={f}><span className="mono">{f}</span><span className="num"><b className="c-ok">+{a}</b> <b className="c-bad">−{d}</b></span></li>)}</ul>
             {c.diff && <pre className="diff">{c.diff.split('\n').map((l, i) => <span key={i} className={l.startsWith('+') && !l.startsWith('+++') ? 'add' : l.startsWith('-') && !l.startsWith('---') ? 'del' : l.startsWith('@@') ? 'hunk' : ''}>{l}{'\n'}</span>)}</pre>}
-            {!c.diff && <p className="muted pad-s">Excerpt not loaded. Use Download for the full patch.</p>}
+            {c.diff && c.diffTruncated && <p className="muted pad-s">Showing the first part of the patch. Use Download for all of it.</p>}
+            {!c.diff && <p className="muted pad-s">{c.hasPatch ? 'Loading the patch…' : 'The agent service did not attach a patch to this delivery.'}</p>}
           </>
         )}
-        {tab === 'report' && <pre className="report">{report(c)}</pre>}
+        {tab === 'report' && <pre className="report">{c.reportText || report(c)}</pre>}
         {tab === 'get' && (
           <div className="pad-s stack">
             {dl ? (
               <>
-                <p className="muted">Fetch the patch, REPORT.md and Agent 2's framework fixes from your node with the plugin.</p>
+                <div className="row-a"><Btn kind="primary" icon="doc" disabled={!c.hasPatch} why="No patch was attached" onClick={() => act.fetchArtifact(c, 'patch')}>Download patch</Btn><Btn icon="doc" disabled={!c.hasReport} why="No report was attached" onClick={() => act.fetchArtifact(c, 'report')}>Download REPORT.md</Btn></div>
+                <p className="muted">Or fetch both from your node with the CLI:</p>
                 <Copy text={`autoresearch download ${c.id} --out ./results/${c.id}`} />
                 <Copy text={`git apply ./results/${c.id}/final.patch`} />
               </>
@@ -130,7 +133,7 @@ export default function Results({ go, pick }) {
   const s = useSim()
   if (pick) return <Detail c={pick} go={go} />
   const done = s.campaigns.filter((c) => c.life === 7)
-  const run = s.campaigns.filter((c) => c.life < 7)
+  const run = s.campaigns.filter((c) => c.live)
   return (
     <>
       <div className="head"><div><h1>Results</h1><p className="sub">Three levels of evidence. Screening and promoted numbers guide the search; only the verified number is reported.</p></div></div>
@@ -139,6 +142,7 @@ export default function Results({ go, pick }) {
         <div><Level k="promoted" /><span>isolated re-measurement</span></div>
         <div><Level k="verified" /><span>trusted verifier on a clean checkout, held-out data</span></div>
       </section>
+      {!done.length && <section className="card locked"><Icon n="results" s={22} /><b>No verified result yet</b><p className="muted">A campaign appears here once the verifier has re-measured its final patch on held-out data.</p></section>}
       <section className="grid-res">
         {done.map((c, i) => (
           <motion.button key={c.id} type="button" className="card res" onClick={() => go('r-' + c.id)} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>

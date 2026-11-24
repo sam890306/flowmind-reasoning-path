@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useSim, act, can, whyNot, spentOf, fmtVal, fmtDelta, tPlus, userOf, cpuRange, SLOTS, ACTIVE } from './engine'
+import { useSim, act, can, whyNot, spentOf, fmtVal, fmtDelta, tPlus, userOf, cpuRange, ACTIVE } from './store'
 import { LIFE } from './data'
 import { Icon, Pill, Num, Spark, Bar, Btn, Avatar, campStatus, Level } from './ui'
 
@@ -69,21 +69,24 @@ function Card({ c, go }) {
 
 function Wizard({ onClose, go }) {
   const s = useSim()
-  const [f, setF] = useState({ name: 'tokenizer encode speed', repo: 'git.lab.internal/nlp/fasttok', goal: 'Make batch encode faster on the 2 GB mixed corpus. Token ids must stay identical.', metric: 'encode speedup', job: '4814302', node: 'gpu-a100-07', gpus: 1, cap: 250, clockH: 6 })
+  const me = userOf(s.me)
+  const [f, setF] = useState({ name: '', repo: '', goal: '', metric: '', job: '', node: me.node || '', gpus: 1, cap: 250, clockH: 6 })
   const [err, setErr] = useState(null)
+  const [busy, setBusy] = useState(false)
   useEffect(() => {
     const esc = (e) => e.key === 'Escape' && onClose()
     addEventListener('keydown', esc)
     return () => removeEventListener('keydown', esc)
   }, [onClose])
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
-  const me = userOf(s.me)
   const left = Math.max(0, me.quota - me.used)
   const free = s.slots.filter((x) => x === null).length
-  const bad = !f.name.trim() || !f.repo.trim() || !f.goal.trim() || Number(f.clockH) < 4 || Number(f.cap) <= 0 || Number(f.cap) > left
-  const submit = (e) => {
+  const bad = busy || !f.name.trim() || !f.repo.trim() || !f.goal.trim() || !f.metric.trim() || Number(f.clockH) < 4 || Number(f.cap) <= 0 || Number(f.cap) > left
+  const submit = async (e) => {
     e.preventDefault()
-    const r = act.create(f)
+    setBusy(true); setErr(null)
+    const r = await act.create({ ...f, gpus: Number(f.gpus), cap: Number(f.cap), clockH: Number(f.clockH) })
+    setBusy(false)
     if (r.error) return setErr(r.error)
     onClose(); go('c-' + r.id)
   }
@@ -91,12 +94,12 @@ function Wizard({ onClose, go }) {
     <motion.div className="scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.form className="modal" onSubmit={submit} onClick={(e) => e.stopPropagation()} initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }} aria-label="New campaign">
         <header><h2>New campaign</h2><Btn icon="x" onClick={onClose} aria-label="Close" /></header>
-        <p className="sub">You hand over a repo and a goal. Agent 2 sets up AutoResearch on its own branch and runs experiments on your Slurm job. No API key needed.</p>
+        <p className="sub">You hand over a repo and a goal. The agent service picks the request up, sets up AutoResearch on its own branch and runs experiments on your Slurm job. No API key needed.</p>
         <div className="form">
-          <label className="span2" htmlFor="w-name">Name<input id="w-name" value={f.name} onChange={set('name')} /></label>
-          <label className="span2" htmlFor="w-repo">Repo (git URL or snapshot)<input id="w-repo" className="mono" value={f.repo} onChange={set('repo')} /></label>
-          <label className="span2" htmlFor="w-goal">Goal<textarea id="w-goal" rows={2} value={f.goal} onChange={set('goal')} /></label>
-          <label htmlFor="w-metric">Metric to improve<input id="w-metric" value={f.metric} onChange={set('metric')} /></label>
+          <label className="span2" htmlFor="w-name">Name<input id="w-name" value={f.name} onChange={set('name')} placeholder="tokenizer encode speed" autoFocus /></label>
+          <label className="span2" htmlFor="w-repo">Repo (git URL or snapshot)<input id="w-repo" className="mono" value={f.repo} onChange={set('repo')} placeholder="git.example.com/team/project" /></label>
+          <label className="span2" htmlFor="w-goal">Goal<textarea id="w-goal" rows={2} value={f.goal} onChange={set('goal')} placeholder="What should get better, and what must not change." /></label>
+          <label htmlFor="w-metric">Metric to improve<input id="w-metric" value={f.metric} onChange={set('metric')} placeholder="encode speedup" /></label>
           <label htmlFor="w-node">GPU node<input id="w-node" className="mono" value={f.node} onChange={set('node')} /></label>
           <label htmlFor="w-job">Running Slurm job<input id="w-job" className="mono" value={f.job} onChange={set('job')} /></label>
           <label htmlFor="w-gpus">GPUs in the job<input id="w-gpus" type="number" min="0" max="8" value={f.gpus} onChange={set('gpus')} /></label>
@@ -104,12 +107,12 @@ function Wizard({ onClose, go }) {
           <label htmlFor="w-clock">Wall clock (hours)<input id="w-clock" type="number" min="4" value={f.clockH} onChange={set('clockH')} /><small className={Number(f.clockH) < 4 ? 'c-bad' : ''}>At least 4 hours</small></label>
         </div>
         <div className="preflight">
-          <span className={free ? 'c-ok' : 'c-bad'}><Icon n={free ? 'check' : 'x'} s={14} />{free} of {SLOTS} measurement slots free</span>
+          <span className={free ? 'c-ok' : 'c-bad'}><Icon n={free ? 'check' : 'x'} s={14} />{free} of {s.slots.length} measurement slots free</span>
           <span className="c-ok"><Icon n="check" s={14} />Token scoped to your campaigns</span>
           <span className="c-ok"><Icon n="lock" s={14} />Evaluator frozen at set-up</span>
         </div>
         {err && <p className="err" role="alert">{err}</p>}
-        <footer><Btn onClick={onClose}>Cancel</Btn><button type="submit" className="btn btn-primary" disabled={bad}><Icon n="bolt" s={15} />Launch campaign</button></footer>
+        <footer><Btn onClick={onClose}>Cancel</Btn><button type="submit" className="btn btn-primary" disabled={bad}><Icon n="bolt" s={15} />{busy ? 'Launching…' : 'Launch campaign'}</button></footer>
       </motion.form>
     </motion.div>
   )
@@ -119,9 +122,11 @@ export default function Fleet({ go }) {
   const s = useSim()
   const [open, setOpen] = useState(false)
   const [mine, setMine] = useState(false)
-  const run = s.campaigns.filter((c) => c.life < 7 && (!mine || c.owner === s.me))
+  const run = s.campaigns.filter((c) => c.live && (!mine || c.owner === s.me))
+  const stopped = s.campaigns.filter((c) => c.over)
+  const total = s.slots.length, L = s.lab
   const done = s.campaigns.filter((c) => c.life === 7)
-  const all = s.campaigns.filter((c) => c.life < 7)
+  const all = s.campaigns.filter((c) => c.live)
   const spend = s.campaigns.reduce((a, c) => a + spentOf(c), 0)
   const tested = s.campaigns.reduce((a, c) => a + c.hyps.filter((h) => h.stage === 'kept' || h.stage === 'discarded').length, 0)
   const liveH = all.reduce((a, c) => a + c.hyps.filter((h) => ACTIVE.includes(h.stage)).length, 0)
@@ -149,7 +154,7 @@ export default function Fleet({ go }) {
       <section className="card rack">
         <header className="card-h">
           <h2><Icon n="cpu" />Measurement slots</h2>
-          <span className="muted">8 pinned cores each, CPUs 8–79 · a 10th campaign is refused, not queued{s.refusals > 0 && ` · ${s.refusals} refused`}</span>
+          <span className="muted">{L.coresPerSlot} pinned cores each, CPUs {L.cpuBase}–{L.cpuBase + total * L.coresPerSlot - 1} · with all {total} leased, a new campaign is refused, not queued{s.refusals > 0 && ` · ${s.refusals} refused`}</span>
         </header>
         <div className="slots">
           {s.slots.map((id, i) => {
@@ -163,7 +168,7 @@ export default function Fleet({ go }) {
             )
           })}
         </div>
-        <Bar pct={used / SLOTS} tone={used >= SLOTS ? 'bad' : 'accent'} />
+        <Bar pct={used / total} tone={used >= total ? 'bad' : 'accent'} />
       </section>
 
       <section className="grid-camps">
@@ -172,10 +177,31 @@ export default function Fleet({ go }) {
           <button type="button" className="card camp-new" onClick={() => setOpen(true)}>
             <span className="plus"><Icon n="plus" s={22} /></span>
             <b>Start another campaign</b>
-            <small>{SLOTS - used} slots free</small>
+            <small>{total - used} slots free</small>
           </button>
         )}
       </section>
+
+      {!s.campaigns.length && !can('create') && <section className="card locked"><Icon n="fleet" s={22} /><b>No campaigns yet</b><p className="muted">Campaigns started by members of the lab will show up here.</p></section>}
+
+      {stopped.length > 0 && (
+        <section className="card">
+          <header className="card-h"><h2><Icon n="x" />Stopped before delivery</h2></header>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead><tr><th>Campaign</th><th>Owner</th><th>State</th><th>Why</th><th>Spend</th></tr></thead>
+              <tbody>
+                {stopped.map((c) => (
+                  <tr key={c.id} onClick={() => go('c-' + c.id)} className="rowlink">
+                    <td><b>{c.name}</b><small className="mono">{c.id}</small></td><td>{userOf(c.owner).name}</td>
+                    <td><Pill tone={campStatus(c).tone}>{campStatus(c).label}</Pill></td><td className="muted">{c.stopWhy || '—'}</td><td className="num">${spentOf(c).toFixed(0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {done.length > 0 && (
         <section className="card">
