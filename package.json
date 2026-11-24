@@ -1,11 +1,14 @@
 {
   "name": "flowmind-reasoning-path",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "node --env-file-if-exists=.env server/dev.js & vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:api": "node --env-file-if-exists=.env --watch server/dev.js",
+    "db:migrate": "node --env-file-if-exists=.env server/migrate.js",
+    "autoresearch": "node cli/autoresearch.js"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
@@ -15,11 +18,19 @@
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@mui/material": "^5.14.2",
     "framer-motion": "^10.12.16",
+    "pg": "^8.23.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.3",
     "vite": "^5.2.0"
+  },
+  "type": "module",
+  "bin": {
+    "autoresearch": "cli/autoresearch.js"
+  },
+  "engines": {
+    "node": ">=20.12"
   }
 }

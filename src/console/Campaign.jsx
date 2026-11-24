@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { useSim, act, can, whyNot, spentOf, fmtVal, fmtDelta, tPlus, userOf, cpuRange, logFor, ACTIVE } from './engine'
+import { useSim, act, can, whyNot, spentOf, fmtVal, fmtDelta, tPlus, userOf, cpuRange, logFor, ACTIVE } from './store'
 import { HSTAGES, REASONS, HARD_LINES } from './data'
-import { Icon, Pill, Num, Ring, Bar, Btn, Avatar, campStatus, Level, stageTone, stageLabel, SRC } from './ui'
+import { Icon, Pill, Num, Ring, Bar, Btn, Avatar, campStatus, Level, stageTone, stageLabel, srcOf } from './ui'
 import { LifeStrip } from './Fleet'
 
 /* ------------------------------------------------------------------ */
@@ -10,7 +10,7 @@ import { LifeStrip } from './Fleet'
 /* ------------------------------------------------------------------ */
 function Topology({ c }) {
   const stages = new Set(c.hyps.filter((h) => ACTIVE.includes(h.stage)).map((h) => h.stage))
-  const on = !c.paused && c.life < 7
+  const on = !c.paused && c.live
   const model = on && (c.life === 3 || stages.has('plan') || stages.has('implement'))
   const node = on && (c.life === 3 || stages.has('screen') || stages.has('promote'))
   const verify = on && c.life === 6
@@ -307,7 +307,7 @@ function Feed({ c, onPick }) {
   return (
     <section className="card feed">
       <header className="card-h">
-        <h2><i className={`dot ${c.paused || c.life === 7 ? '' : 'live'}`} />Live feed</h2>
+        <h2><i className={`dot ${c.paused || !c.live ? '' : 'live'}`} />Live feed</h2>
         <div className="seg" role="tablist" aria-label="Filter feed">
           {[['all', 'Key events'], ['verdicts', 'Verdicts'], ['agent', 'Agent 2'], ['raw', 'Everything']].map(([k, l]) => (
             <button key={k} type="button" role="tab" aria-selected={f === k} className={f === k ? 'on' : ''} onClick={() => setF(k)}>{l}</button>
@@ -325,13 +325,14 @@ function Feed({ c, onPick }) {
           {evs.map((e) => (
             <motion.li key={e.id} layout="position" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} className={`ev-i k-${e.kind || 'x'}`}>
               <time className="mono">{tPlus(e.t)}</time>
-              <span className={`src t-${SRC[e.src][1]}`}>{SRC[e.src][0]}</span>
+              <span className={`src t-${srcOf(e.src)[1]}`}>{srcOf(e.src)[0]}</span>
               <span className="ev-t">{e.text}{e.hyp && <button type="button" className="link" onClick={() => onPick(e.hyp)}>open {e.hyp}</button>}</span>
             </motion.li>
           ))}
         </AnimatePresence>
       </ol>
-      {c.life < 7 && (
+      {!evs.length && <p className="empty pad-s">{c.live ? 'No events yet. They appear here as the agent service reports them.' : 'No events were recorded.'}</p>}
+      {c.live && (
         <form className="steer" onSubmit={send}>
           <input id="steer" value={note} onChange={(e) => setNote(e.target.value)} placeholder={ctl ? 'Steer Agent 2, e.g. “focus on the min / max kernels”' : whyNot('control')} disabled={!ctl} aria-label="Note to Agent 2" />
           <button type="submit" className="btn btn-primary" disabled={!ctl || !note.trim()}><Icon n="send" s={15} />Send note</button>
@@ -362,7 +363,7 @@ function Spend({ c }) {
         </div>
         <footer className="card-f">
           <span className="muted">Over a role cap the proxy answers 402. Past the deadline, 403.</span>
-          {c.life < 7 && <Btn kind="soft" icon="plus" disabled={!ctl} why={whyNot('control')} onClick={() => act.raiseCap(c, 50)}>Raise cap by $50</Btn>}
+          {c.live && <Btn kind="soft" icon="plus" disabled={!ctl} why={whyNot('control')} onClick={() => act.raiseCap(c, 50)}>Raise cap by $50</Btn>}
         </footer>
       </section>
       <section className="card">
@@ -414,15 +415,17 @@ export default function Campaign({ c, go }) {
           <p className="meta mono"><span>{c.id}</span><span>{c.repo}@{c.sha}</span><span className="own"><Avatar name={own.name} />{own.name}</span></p>
         </div>
         <div className="head-a">
-          {c.life < 7 ? (
+          {c.live ? (
             <>
               <Btn icon={c.paused ? 'play' : 'pause'} disabled={!ctl} why={whyNot('control')} onClick={() => act.pause(c)}>{c.paused ? 'Resume' : 'Pause'}</Btn>
               <Btn icon="flag" kind="soft" disabled={!ctl || c.life !== 4} why={ctl ? 'Available during the research loop' : whyNot('control')} onClick={() => act.finalize(c)}>Finalize now</Btn>
             </>
-          ) : <Btn icon="results" kind="primary" onClick={() => go('r-' + c.id)}>Open result</Btn>}
+          ) : c.life === 7 ? <Btn icon="results" kind="primary" onClick={() => go('r-' + c.id)}>Open result</Btn> : null}
         </div>
       </div>
 
+      {c.over && <p className="err" role="alert">This campaign {c.status === 'failed' ? 'failed' : 'was cancelled'}{c.stopWhy ? `: ${c.stopWhy}` : '.'}</p>}
+      {c.live && c.pendingCommands > 0 && <p className="notice"><Icon n="clock" s={14} />{c.pendingCommands} request{c.pendingCommands > 1 ? 's' : ''} waiting for the agent service to pick up.</p>}
       <section className="card pad"><LifeStrip c={c} big /></section>
 
       <section className="kpis">
@@ -432,7 +435,7 @@ export default function Campaign({ c, go }) {
           <small><b className="c-ok">{fmtDelta(c.metric, score)}</b> vs baseline {fmtVal(c.metric, 0)}</small>
         </div>
         <div className="kpi row"><Ring pct={spent / c.cap} tone={spent / c.cap > 0.85 ? 'warn' : 'accent'}><b>{Math.round((spent / c.cap) * 100)}%</b></Ring><div><span className="lab">Spend</span><strong>$<Num v={spent} /></strong><small>of ${c.cap} cap</small></div></div>
-        <div className="kpi row"><Ring pct={c.elapsed / (c.clockH * 3600)} tone="agent"><Icon n="clock" /></Ring><div><span className="lab">Clock</span><strong>{tPlus(c.elapsed).slice(2)}</strong><small>{c.life === 7 ? 'finished' : `${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}m left of ${c.clockH}h`}</small></div></div>
+        <div className="kpi row"><Ring pct={c.elapsed / (c.clockH * 3600)} tone="agent"><Icon n="clock" /></Ring><div><span className="lab">Clock</span><strong>{tPlus(c.elapsed).slice(2)}</strong><small>{!c.live ? (c.life === 7 ? 'finished' : c.status) : `${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}m left of ${c.clockH}h`}</small></div></div>
         <div className="kpi">
           <span className="lab">Hypotheses</span>
           <strong><Num v={c.hyps.length} /></strong>
@@ -468,7 +471,7 @@ export default function Campaign({ c, go }) {
                       <span className="fl-t">{h.t}</span><Bar pct={h.p} tone={stageTone(h.stage)} live={!c.paused} />
                     </button>
                   ))}
-                  {!live.length && <p className="empty">{c.life === 7 ? 'Campaign delivered. Nothing is running.' : 'Nothing in the research loop at this step.'}</p>}
+                  {!live.length && <p className="empty">{!c.live ? (c.life === 7 ? 'Campaign delivered. Nothing is running.' : 'This campaign stopped before delivery.') : 'Nothing in the research loop at this step.'}</p>}
                 </div>
               </section>
             </div>

@@ -328,7 +328,7 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .stepper { display: inline-flex; align-items: center; gap: 8px; } .stepper button { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line-2); text-align: center; color: var(--fg-2); } .stepper button:hover { border-color: var(--accent); color: var(--accent); }
 .usedcell { display: grid; gap: 4px; min-width: 90px; }
 .toks li { display: grid; grid-template-columns: 110px 1fr 1.2fr 1fr auto; gap: 10px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 12.5px; } .toks li:first-child { border-top: 0; } .toks { overflow-x: auto; } .toks li > * { white-space: nowrap; }
-.audit { padding: 8px 0; max-height: 380px; overflow-y: auto; } .audit li { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 6px 16px; font-size: 12.5px; } .audit b { font: 600 11.5px var(--f-mono); color: var(--agent); overflow: hidden; text-overflow: ellipsis; } .audit span { color: var(--fg-2); overflow-wrap: anywhere; }
+.audit { padding: 8px 0; max-height: 380px; overflow-y: auto; } .audit li { display: grid; grid-template-columns: 96px 1fr auto; gap: 10px; padding: 6px 16px; font-size: 12.5px; } .audit b { font: 600 11.5px var(--f-mono); color: var(--agent); overflow: hidden; text-overflow: ellipsis; } .audit span { color: var(--fg-2); overflow-wrap: anywhere; }
 .people { display: grid; gap: 12px; padding: 16px; } .people li { display: grid; grid-template-columns: minmax(120px, 170px) 1fr 54px 58px; gap: 10px; align-items: center; font-size: 13px; } .people b, .people small { text-align: right; } .people small { color: var(--fg-3); }
 .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--fg-3); } .legend li { display: flex; gap: 6px; align-items: center; } .legend i { width: 9px; height: 9px; border-radius: 2px; background: var(--tone); }
 .stackbars { display: grid; gap: 12px; padding: 16px; } .stackbars li { display: grid; grid-template-columns: minmax(110px, 190px) 1fr 54px; gap: 10px; align-items: center; font-size: 13px; } .stackbars .link { margin: 0; text-align: left; text-decoration: none; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .stackbars b { text-align: right; }
@@ -351,3 +351,33 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
   .kv, .camp-kv { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* ---------- sign-in, approval and setup screens ---------- */
+.gate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; position: relative; }
+.gate-card { position: relative; z-index: 1; width: min(460px, 100%); display: flex; flex-direction: column; gap: 16px; padding: 28px; border: 1px solid var(--line-2); border-radius: 18px; background: var(--bg-2); box-shadow: var(--shadow); }
+.gate-card h1 { font: 600 24px/1.2 var(--f-display); } .gate-card .sub { color: var(--fg-2); }
+.btn-google { justify-content: center; gap: 10px; padding: 11px 16px; font-weight: 600; background: #fff; color: #1f1f1f; border: 1px solid #dadce0; border-radius: 10px; display: flex; align-items: center; }
+.btn-google:hover { background: #f6f8fb; }
+.gate-dev { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px dashed var(--line-2); border-radius: 10px; font-size: 12px; color: var(--fg-3); }
+.gate-dev div { display: flex; gap: 8px; } .gate-dev input { flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--bg); }
+.gate-list { display: flex; flex-direction: column; gap: 8px; } .gate-list li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.gate-list li.ok svg { color: var(--ok); } .gate-list li.todo svg { color: var(--bad); } .gate-list span { display: flex; flex-direction: column; gap: 2px; color: var(--fg-2); font-size: 13px; } .gate-list b { color: var(--fg); }
+.gate-ask { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--fg-2); }
+
+/* ---------- user menu, toast, notices ---------- */
+.user { position: relative; }
+.user-b { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 13px; }
+.user-b img { width: 26px; height: 26px; border-radius: 50%; } .user-b > span:nth-child(2) { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-m { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; min-width: 230px; padding: 8px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg-2); box-shadow: var(--shadow); }
+.user-m p { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 6px; } .user-m small { color: var(--fg-3); }
+.user-m button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 8px; } .user-m button:hover { background: var(--panel-2); }
+.toast { position: fixed; z-index: 60; left: 50%; bottom: 22px; translate: -50% 0; display: flex; align-items: center; gap: 12px; max-width: min(560px, calc(100vw - 32px)); padding: 11px 14px; border-radius: 12px;
+  background: var(--bg-2); border: 1px solid color-mix(in srgb, var(--bad) 45%, var(--line-2)); box-shadow: var(--shadow); color: var(--fg); }
+.notice { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); background: color-mix(in srgb, var(--warn) 9%, transparent); border-radius: 9px; color: var(--fg-2); }
+.dot.off { background: var(--fg-3); box-shadow: none; animation: none; }
+.row-a { display: flex; gap: 8px; flex-wrap: wrap; }
+.tok-new { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--line); }
+.tok-new input, .tok-new select { padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--bg); } .tok-new input { flex: 1; min-width: 160px; }
+.tok-made { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; margin: 0 16px 12px; padding: 12px; border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--ok) 8%, transparent); }
+.tok-made .copy { align-self: stretch; }
+.audit time { margin-left: auto; font-size: 11.5px; white-space: nowrap; }

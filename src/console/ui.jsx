@@ -24,6 +24,8 @@ const P = {
   lock: 'M7 11V8a5 5 0 0110 0v3M5 11h14v9H5z',
   bolt: 'M13 3L5 13h6l-1 8 8-10h-6z',
   doc: 'M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5',
+  key: 'M15 7a4 4 0 11-3.9 5H8v3H5v3H2v-3l6.200-6.200A4 4 0 0115 7zM16 8h.010',
+  out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
   q: 'M9.500 9a2.500 2.500 0 115 0c0 1.700-2.500 2-2.500 4M12 17h.010M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
 }
 export const Icon = ({ n, s = 16 }) => (
@@ -40,6 +42,8 @@ export const stageTone = (st) => ({ idea: 'mute', plan: 'agent', implement: 'age
 export const stageLabel = (h) => ({ idea: 'Idea', plan: 'Planning', implement: 'Implementing', screen: 'Screening', promote: 'Re-measuring', kept: 'Promoted', discarded: REASONS[h.fate]?.label || 'Discarded' }[h.stage])
 
 export function campStatus(c) {
+  if (c.status === 'failed') return { tone: 'bad', label: 'Failed' }
+  if (c.status === 'cancelled') return { tone: 'mute', label: 'Cancelled' }
   if (c.life === 7) return { tone: 'ok', label: 'Delivered' }
   if (c.paused) return { tone: 'warn', label: 'Paused' }
   if (c.questions.some((q) => !q.answer)) return { tone: 'warn', label: 'Needs your answer' }
@@ -102,7 +106,7 @@ export const Bar = ({ pct, tone = 'accent', live }) => (
   <div className={`bar t-${tone}${live ? ' live' : ''}`}><i style={{ width: `${Math.max(0, Math.min(1, pct)) * 100}%` }} /></div>
 )
 
-export const Avatar = ({ name }) => {
+export const Avatar = ({ name = '?' }) => {
   const ini = name.split(' ').map((x) => x[0]).slice(0, 2).join('')
   const hue = [...name].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360
   return <span className="avatar" style={{ '--h': hue }}>{ini}</span>
@@ -136,3 +140,4 @@ export const SRC = {
   agent2: ['Agent 2', 'agent'], engine: ['Run box', 'accent'], proxy: ['Model proxy', 'warn'], broker: ['Node broker', 'node'],
   verifier: ['Verifier', 'ok'], agentd: ['agentd', 'host'], service: ['Agent service', 'host'], tools: ['Tool server', 'mute'], you: ['Teammate', 'mate'],
 }
+export const srcOf = (k) => SRC[k] || [k, 'mute']

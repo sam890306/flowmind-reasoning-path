@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "redirects": [{ "source": "/", "destination": "/console.html", "permanent": false }],
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api?__path=$1" }],
+  "functions": { "api/index.js": { "maxDuration": 30 } }
+}
