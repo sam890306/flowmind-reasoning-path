@@ -1,7 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
+// Two pages: index.html (reasoning-path demo) and console.html (AutoResearch console).
 export default defineConfig({
-  plugins: [react()]
+  plugins: [react()],
+  base: './',
+  build: {
+    rollupOptions: { input: { main: 'index.html', console: 'console.html' } },
+  },
 })
