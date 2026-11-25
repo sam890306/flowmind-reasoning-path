@@ -1,79 +1,59 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { useSim, act, can, whyNot, spentOf, fmtVal, fmtDelta, tPlus, userOf, cpuRange, logFor, ACTIVE } from './store'
-import { HSTAGES, REASONS, HARD_LINES } from './data'
+import { HSTAGES, LIFE, REASONS, HARD_LINES } from './data'
 import { Icon, Pill, Num, Ring, Bar, Btn, Avatar, campStatus, Level, stageTone, stageLabel, srcOf } from './ui'
-import { LifeStrip } from './Fleet'
 
-/* ------------------------------------------------------------------ */
-/* Live architecture: which box is working right now, and what flows   */
-/* ------------------------------------------------------------------ */
-function Topology({ c }) {
-  const stages = new Set(c.hyps.filter((h) => ACTIVE.includes(h.stage)).map((h) => h.stage))
-  const on = !c.paused && c.live
-  const model = on && (c.life === 3 || stages.has('plan') || stages.has('implement'))
-  const node = on && (c.life === 3 || stages.has('screen') || stages.has('promote'))
-  const verify = on && c.life === 6
-  const loop = on && c.life === 4
-  const hot = { a2: on && c.life >= 3 && c.life <= 5, run: loop, proxy: model, api: model, broker: node || verify, worker: node, sess: node || verify, ver: verify, svc: on, wake: on, tools: on && c.life >= 3, mate: on }
-  const N = ({ id, t, d, dashed, ...g }) => { const x = +g.x, y = +g.y, w = +g.w, h = +(g.h || 44); return (
-    <g className={`tn${hot[id] ? ' hot' : ''}${dashed ? ' dashed' : ''}`}>
-      <rect x={x} y={y} width={w} height={h} rx="8" />
-      <text x={x + 10} y={y + 18} className="tn-t">{t}</text>
-      <text x={x + 10} y={y + 33} className="tn-d">{d}</text>
-      {hot[id] && <circle cx={x + w - 11} cy={y + 12} r="3" className="tn-led" />}
-    </g>
-  ) }
-  const E = ({ d, k = 'ctl', act: a, n = 2, dur = 2.4 }) => (
-    <g className={`te te-${k}${a ? ' hot' : ''}`}>
-      <path d={d} fill="none" />
-      {a && Array.from({ length: n }, (_, i) => (
-        <circle key={i} r="3.2"><animateMotion dur={`${dur}s`} begin={`${(i * dur) / n}s`} repeatCount="indefinite" path={d} /></circle>
-      ))}
-    </g>
-  )
+function RunJournal({ c, live, onPick, onViewHypotheses }) {
+  const status = campStatus(c)
+  const inFlight = c.live && live.length > 0
+  const candidates = inFlight ? live : c.hyps.filter((h) => h.stage === 'kept' || h.stage === 'discarded')
+  const picks = [...candidates]
+    .sort((a, b) => (b.marks.end ?? b.marks.idea ?? 0) - (a.marks.end ?? a.marks.idea ?? 0) || b.n - a.n)
+    .slice(0, 3)
+  const last = c.events.findLast((event) => event.kind !== 'ambient' && event.text)
+  const activity = c.act || (c.live ? 'Waiting for the first update.' : 'No activity summary was recorded.')
+  const phase = c.live && LIFE[c.life]?.k
+  const linkedHypothesis = last?.hyp && c.hyps.some((h) => h.id === last.hyp)
+
   return (
-    <div className="topo-wrap">
-      <svg className="topo" viewBox="0 0 980 372" role="img" aria-label="Live architecture of this campaign">
-        <g className="zone z-a"><rect x="6" y="28" width="178" height="336" rx="12" /><text x="18" y="50">A · Teammate</text></g>
-        <g className="zone z-b"><rect x="212" y="28" width="500" height="336" rx="12" /><text x="224" y="50">B · Operator CPU host</text></g>
-        <g className="zone z-c"><rect x="762" y="128" width="212" height="236" rx="12" /><text x="774" y="150">C · {c.node}</text></g>
-
-        <E d="M184 96 H224" k="ctl" act={hot.mate} dur={3} n={1} />
-        <E d="M224 112 H184" k="res" act={on && c.life >= 3} dur={2.6} n={1} />
-        <E d="M330 118 V150" k="ctl" act={hot.wake} dur={1.8} n={1} />
-        <E d="M300 206 V262" k="ctl" act={hot.tools} dur={1.6} />
-        <E d="M400 290 H452" k="ctl" act={loop} dur={1.4} />
-        <E d="M560 262 V206" k="model" act={model} dur={1.2} n={3} />
-        <E d="M620 162 H740 V74 H770" k="model" act={model} dur={1.6} n={3} />
-        <E d="M700 184 H740 V198 H774" k="ssh" act={node || verify} dur={1.5} />
-        <E d="M640 280 H740 V290 H774" k="ssh" act={node} dur={1.3} n={3} />
-        <E d="M774 312 H740 V302 H640" k="res" act={node} dur={1.7} />
-        <E d="M470 206 V240 H730 V214 H774" k="ssh" act={verify} dur={1.8} n={3} />
-
-        <N id="mate" x="18" y="66" w="154" h="60" t="Agent 1 · your Codex" d="plugin: watch · note" />
-        <g className="tn-list"><text x="20" y="160">You get back</text><text x="20" y="180" className="d">· live feed and results</text><text x="20" y="197" className="d">· questions to answer</text><text x="20" y="214" className="d">· spend against quota</text><text x="20" y="231" className="d">· patch + REPORT.md</text></g>
-
-        <N id="svc" x="224" y="66" w="476" h="52" t="Agent service · HTTPS :9445" d="accounts, intake, feed, artifacts, chargeback" />
-        <text x="224" y="146" className="zone-sub">agentd · trusted daemon, outside every sandbox</text>
-        <N id="wake" x="224" y="154" w="110" h="52" t="Wake loop" d="codex exec resume" />
-        <N id="tools" x="342" y="154" w="110" h="52" t="Tool server" d="MCP · calls logged" />
-        <N id="ver" x="460" y="154" w="110" h="52" t="Verifier" d="clean checkout" />
-        <N id="proxy" x="578" y="154" w="122" h="52" t="Model proxy" d={`cap $${c.cap} · 402 / 403`} />
-        <text x="224" y="254" className="zone-sub">campaign/{c.id}</text>
-        <N id="a2" x="224" y="262" w="176" h="60" t="Agent 2 · persistent" d="sets up, watches, repairs" dashed />
-        <N id="run" x="452" y="262" w="188" h="60" t="Run box · AutoResearch" d="ideas → screen → promote" dashed />
-        <text x="224" y="348" className="zone-note">Held-out data stays on host-local disk. Only the verifier reads it.</text>
-
-        <N id="api" x="770" y="46" w="204" h="52" t="Model API · external" d="reached only through the proxy" />
-        <N id="sess" x="774" y="162" w="188" h="60" t={`Slurm job ${c.job}`} d={`node sessions · ${c.gpus} GPU leased`} />
-        <N id="worker" x="774" y="262" w="188" h="60" t="Experiment worker" d="no network, no secrets" dashed />
-        <text x="774" y="348" className="zone-note">check → correctness → collect (timed)</text>
-      </svg>
-      <ul className="topo-key">
-        <li className="k-ctl">requests and control</li><li className="k-model">model calls</li><li className="k-ssh">SSH to compute</li><li className="k-res">results, feed</li>
-      </ul>
-    </div>
+    <section className="run-journal" aria-labelledby="run-journal-heading">
+      <header className="run-journal-head">
+        <h2 id="run-journal-heading">Run journal</h2>
+        <p className="run-status"><Pill tone={status.tone} dot>{status.label}</Pill>{phase && <span>{phase}</span>}</p>
+      </header>
+      <dl className="run-entries">
+        {(!last || (c.act && c.act !== last.text)) && <div><dt>Activity summary</dt><dd>{activity}</dd></div>}
+        {last && <div>
+          <dt><time>{tPlus(last.t)}</time>{last.src && <span>{srcOf(last.src)[0]}</span>}</dt>
+          <dd>
+            <span>{last.text}</span>
+            {linkedHypothesis && <button type="button" className="link" onClick={() => onPick(last.hyp)}>Open {last.hyp}</button>}
+          </dd>
+        </div>}
+      </dl>
+      {c.hyps.length > 0 && (
+        <div className="run-review">
+          <div className="run-review-head">
+            <h3>{inFlight ? 'In flight' : 'Hypotheses to review'}</h3>
+            <button type="button" className="more" onClick={onViewHypotheses}>All hypotheses</button>
+          </div>
+          {picks.length ? (
+            <ul className="run-docket">
+              {picks.map((h) => (
+                <li key={h.id}>
+                  <button type="button" onClick={() => onPick(h.id)}>
+                    <span className="run-hyp-id">{h.id}</span>
+                    <span className="run-hyp-title">{h.t}</span>
+                    <Pill tone={stageTone(h.stage)}>{stageLabel(h)}</Pill>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="run-empty">No hypotheses ready to review.</p>}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -426,8 +406,6 @@ export default function Campaign({ c, go }) {
 
       {c.over && <p className="err" role="alert">This campaign {c.status === 'failed' ? 'failed' : 'was cancelled'}{c.stopWhy ? `: ${c.stopWhy}` : '.'}</p>}
       {c.live && c.pendingCommands > 0 && <p className="notice"><Icon n="clock" s={14} />{c.pendingCommands} request{c.pendingCommands > 1 ? 's' : ''} waiting for the agent service to pick up.</p>}
-      <section className="card pad"><LifeStrip c={c} big /></section>
-
       <section className="kpis">
         <div className="kpi hero">
           <span className="lab">{c.metric.label} <Level k={c.life === 7 ? 'verified' : 'promoted'} /></span>
@@ -444,35 +422,20 @@ export default function Campaign({ c, go }) {
       </section>
 
       <div className="tabs" role="tablist">
-        {[['live', 'Live'], ['hyp', `Hypotheses · ${c.hyps.length}`], ['spend', 'Spend and compute']].map(([k, l]) => (
+        {[['live', 'Overview'], ['hyp', `Hypotheses · ${c.hyps.length}`], ['spend', 'Spend and compute']].map(([k, l]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
       {tab === 'live' && (
         <>
-          <section className="card">
-            <header className="card-h"><h2><Icon n="bolt" />Where the work is right now</h2><span className="muted now-act">{c.paused ? 'Paused' : c.act}</span></header>
-            <Topology c={c} />
-          </section>
+          <RunJournal c={c} live={live} onPick={setSel} onViewHypotheses={() => setTab('hyp')} />
           <div className="two wide-l">
             <Feed c={c} onPick={setSel} />
             <div className="stack">
               <section className="card">
                 <header className="card-h"><h2><Icon n="results" />Score over time</h2><span className="muted">line: best promoted · dots: each screening</span></header>
                 <ScoreChart c={c} onPick={setSel} />
-              </section>
-              <section className="card">
-                <header className="card-h"><h2>In flight</h2><button type="button" className="more" onClick={() => setTab('hyp')}>All hypotheses</button></header>
-                <div className="inflight">
-                  {live.map((h) => (
-                    <button key={h.id} type="button" className="fl" onClick={() => setSel(h.id)}>
-                      <span><b className="mono">{h.id}</b><Pill tone={stageTone(h.stage)}>{stageLabel(h)}</Pill></span>
-                      <span className="fl-t">{h.t}</span><Bar pct={h.p} tone={stageTone(h.stage)} live={!c.paused} />
-                    </button>
-                  ))}
-                  {!live.length && <p className="empty">{!c.live ? (c.life === 7 ? 'Campaign delivered. Nothing is running.' : 'This campaign stopped before delivery.') : 'Nothing in the research loop at this step.'}</p>}
-                </div>
               </section>
             </div>
           </div>
